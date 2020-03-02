@@ -1,0 +1,54 @@
+import sys
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+os.chdir("C:/Users/Tonyyin/Desktop/New folder (3)")
+import numpy as np
+
+def plot_dr_ratio(portfolio_index, dr):
+    x1 = df.index.values
+    x2 = df.index.values[len(df)-len(dr):len(df)]
+
+    y1 = portfolio_index
+    y2 = dr
+
+    plt.subplot(2, 1, 1)
+    plt.plot(x1, y1, 'o-')
+    plt.title('Portfolio Index & Diversification Ratio')
+    plt.ylabel('Portfolio Index')
+
+    plt.subplot(2, 1, 2)
+    plt.plot(x2, y2, '.-')
+    plt.xlabel('Date')
+    plt.ylabel('Diversification Ratio')
+
+    #plt.savefig('question2.png',bbox_inches='tight')
+    plt.show()
+
+    
+
+def rolling_dr_ratio(df, rolling_window_size=200):
+    
+    df.columns = ['A1R','A2R','A3R','A4R','A1W','A2W','A3W','A4W','Portfolio_Index']
+    dr = []
+    #create log return series on portfolio index
+    df['Portfolio_Return'] = np.log(df.Portfolio_Index) - np.log(df.Portfolio_Index.shift(1))
+    
+    #calculate DR for all rolling windows
+    for i in range(rolling_window_size+1,len(df)):
+        subset = df.iloc[i-rolling_window_size:i,:]
+        numerator = subset['A1W'][-1]*np.std(subset['A1R'])+\
+                    subset['A2W'][-1]*np.std(subset['A2R'])+\
+                    subset['A3W'][-1]*np.std(subset['A3R'])+\
+                    subset['A4W'][-1]*np.std(subset['A4R'])
+        
+        dr.append(numerator/np.std(subset['Portfolio_Return']))
+        
+
+    # plot index and the rolling dr
+    plot_dr_ratio(df["Portfolio_Index"], dr)
+
+
+if __name__=="__main__":
+    df = pd.read_csv("dr.csv", index_col=0, header=[1], parse_dates=False)
+    rolling_dr_ratio(df)

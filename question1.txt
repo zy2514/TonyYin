@@ -1,0 +1,80 @@
+import pandas as pd
+import os
+os.chdir("C:/Users/Tonyyin/Desktop/New folder (3)")
+
+def same_timeseries(ts1, ts2):
+
+    if len(ts1) == len(ts2):
+        return (sum(ts1.values - ts2.values) < 10**-5).all()
+    else:
+        return False
+
+
+def find_differences(bbg_df, quandl_df, match_df, csv_file_path=None):
+    
+    """
+    first filter bbg_df for price column and quandl_df for Close column
+    """
+    
+    quandl_df = quandl_df.loc[:, quandl_df.columns.get_level_values(1).isin({"Close"})]
+    quandl_df.columns = quandl_df.columns.get_level_values(0)
+    
+    bbg_df = bbg_df.loc[:,bbg_df.columns.get_level_values(1).isin({"price"})]
+    bbg_df.columns = bbg_df.columns.get_level_values(0)
+    
+    """
+    construct output dataframe
+    """
+    
+    output = pd.DataFrame(data={"BBG_Ticker":match_df[1], "Quandl_Ticker":match_df[0]})
+    
+    bbg_start_date=[]
+    quandl_start_date=[]
+    match=[]    
+
+    for i in range(len(output)):
+        
+        if output['BBG_Ticker'][i] in bbg_df.columns:
+            bbg_series = bbg_df[output['BBG_Ticker'][i]].dropna()
+            bbg_start_date.append(bbg_series.index.values[0])
+        else:
+            bbg_series=None
+            bbg_start_date.append(-1)
+        
+        if output['Quandl_Ticker'][i] in quandl_df.columns:
+            quandl_series = quandl_df[output['Quandl_Ticker'][i]].dropna()
+            quandl_start_date.append(quandl_series.index.values[0])
+        else:
+            quandl_series=None
+            quandl_start_date.append(-1)
+  
+        if bbg_series is not None and quandl_series is not None:
+            match.append(same_timeseries(bbg_series,quandl_series))
+        elif bbg_series is None and quandl_series is None:
+            match.append(True)
+        else:
+            match.append(False)
+        
+
+    result = pd.concat([output,pd.DataFrame(quandl_start_date),pd.DataFrame(bbg_start_date),pd.DataFrame(match)],
+                        axis=1)  
+    result.columns = ['BBG_Ticker','Quandl_Ticker',
+                                        'Quandl Data Start Date',
+                                        ' BBG Data Start Date',
+                                        'Match since common start date?']
+
+    if csv_file_path:
+        result.to_csv(csv_file_path)
+
+
+if __name__=="__main__":
+    bbg_df = pd.read_csv("bbg_data_final.csv", header=[0,1], index_col=0)
+    quandl_df = pd.read_csv("quandl_data_final.csv", header=[0,1], index_col=0) #quandl_data_final.csv
+    match_df = pd.read_csv("match_final.csv", header=None)
+    find_differences(bbg_df, quandl_df, match_df, "output.csv")
+    
+    
+    
+    
+    
+    
